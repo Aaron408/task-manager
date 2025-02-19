@@ -37,7 +37,7 @@ const LandingPage = () => {
             Iniciar Sesión
           </button>
           <button
-            onClick={() => navigate("/signup")}
+            onClick={() => navigate("/register")}
             className="border-2 border-gray-800 text-gray-800 px-6 py-2 rounded-full font-semibold hover:bg-gray-800 hover:text-white transition duration-300 cursor-pointer"
           >
             Registrate

@@ -28,12 +28,29 @@ const LoginPage = () => {
   const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isFormValid = isValidEmail(email) && password.trim() !== "";
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email === user.email && password === user.password) {
-      navigate("/dashboard");
-    } else {
-      alert("Credenciales inválidas");
+
+    try {
+      const response = await fetch("http://localhost:5000/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("token", data.token);
+        navigate("/dashboard");
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      console.error("Error en el login:", error);
+      alert("Error en el servidor");
     }
   };
 
@@ -126,9 +143,18 @@ const LoginPage = () => {
               </div>
             </form>
             <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                ¿No tienes cuenta?{" "}
+                <button
+                  onClick={() => navigate("/register")}
+                  className="text-gray-800 font-medium hover:underline"
+                >
+                  Regístrate aquí
+                </button>
+              </p>
               <button
                 onClick={() => navigate("/")}
-                className="text-sm text-gray-600 hover:text-gray-800"
+                className="mt-2 text-sm text-gray-600 hover:text-gray-800"
               >
                 Volver al inicio
               </button>
