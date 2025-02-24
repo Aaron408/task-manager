@@ -5,6 +5,7 @@ import LandingPage from "../Pages/LandingPage/LandingPage";
 import Login from "../Pages/LoginPage/LoginPage";
 import RegisterPage from "../Pages/RegisterPage/RegisterPage";
 import DashboardPage from "../Pages/Dashboard/DashboardPage";
+import TasksPage from "../Pages/Tasks/TasksPage";
 
 const Navigation = () => {
   return (
@@ -14,6 +15,7 @@ const Navigation = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
+      <Route path="/tasks" element={<TasksPage />} />
     </Routes>
   );
 };
