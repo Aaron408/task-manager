@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { HiOutlineUserGroup } from "react-icons/hi";
 import { FiSearch, FiPlusCircle } from "react-icons/fi";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import MainLayout from "../../Layouts/MainLayouts";
 import CreateGroupModal from "./CreateGroupModal";
 import AddParticipantModal from "./AddParticipantModal";
@@ -12,6 +14,7 @@ const GroupsPage = () => {
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [userId, setUserId] = useState(null);
   const [activities, setActivities] = useState({
     Completed: [],
     "In Progress": [],
@@ -61,6 +64,7 @@ const GroupsPage = () => {
       setUserRole(data.role);
     } catch (error) {
       console.error("Error de conexión:", error);
+      toast.error("Error al cargar los grupos");
     }
   };
 
@@ -87,10 +91,10 @@ const GroupsPage = () => {
       }
 
       const data = await response.json();
-      console.log("Lista de usuarios:", data.users);
       setUsersList(data.users);
     } catch (error) {
       console.error("Error al obtener lista de usuarios:", error);
+      toast.error("Error al cargar la lista de usuarios");
     }
   };
 
@@ -120,7 +124,6 @@ const GroupsPage = () => {
       }
 
       const data = await response.json();
-      console.log("Tareas del grupo:", data.tasks);
       const groupedTasks = {
         Completed: [],
         "In Progress": [],
@@ -132,9 +135,11 @@ const GroupsPage = () => {
       });
 
       setActivities(groupedTasks);
-      console.log("Tareas del grupo:", groupedTasks);
+      setUserRole(data.userRole);
+      setUserId(data.userId);
     } catch (error) {
       console.error("Error al obtener tareas del grupo:", error);
+      toast.error("Error al cargar las tareas del grupo");
     }
   };
 
@@ -162,15 +167,17 @@ const GroupsPage = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error al crear el grupo:", errorText);
+        toast.error("Error al crear el grupo");
         return;
       }
 
       const data = await response.json();
-      alert("Grupo creado exitosamente");
       setGroups([...groups, data.group]);
       setIsCreateGroupModalOpen(false);
+      toast.success("Grupo creado exitosamente");
     } catch (error) {
       console.error("Error al crear el grupo:", error);
+      toast.error("Error al crear el grupo");
     }
   };
 
@@ -197,19 +204,20 @@ const GroupsPage = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error al añadir participante:", errorText);
+        toast.error("Error al añadir participante");
         return;
       }
 
-      alert("Participante añadido exitosamente");
-      // Actualizar el grupo seleccionado con el nuevo participante
       setSelectedGroup((prevGroup) => ({
         ...prevGroup,
         participantes: [...prevGroup.participantes, newParticipantId],
       }));
 
       setIsAddParticipantModalOpen(false);
+      toast.success("Participante añadido exitosamente");
     } catch (error) {
       console.error("Error al añadir participante:", error);
+      toast.error("Error al añadir participante");
     }
   };
 
@@ -233,10 +241,10 @@ const GroupsPage = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error al crear la tarea:", errorText);
+        toast.error("Error al crear la tarea");
         return;
       }
 
-      alert("Tarea creada exitosamente");
       const data = await response.json();
       setActivities((prevActivities) => ({
         ...prevActivities,
@@ -244,8 +252,10 @@ const GroupsPage = () => {
       }));
 
       setIsTaskCreationModalOpen(false);
+      toast.success("Tarea creada exitosamente");
     } catch (error) {
       console.error("Error al crear la tarea:", error);
+      toast.error("Error al crear la tarea");
     }
   };
 
@@ -271,21 +281,19 @@ const GroupsPage = () => {
           return;
         }
 
-        const response = await fetch(
-          `http://localhost:5000/dropTasks/${taskId}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ status: toStatus }),
-          }
-        );
+        const response = await fetch(`http://localhost:5000/dropTasks/${taskId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status: toStatus }),
+        });
 
         if (!response.ok) {
           const errorText = await response.text();
           console.error("Error al actualizar la tarea:", errorText);
+          toast.error("No tienes permiso para mover esta tarea");
           return;
         }
 
@@ -294,16 +302,21 @@ const GroupsPage = () => {
           const taskIndex = updatedActivities[fromStatus].findIndex(
             (task) => task.id === taskId
           );
-          const [movedTask] = updatedActivities[fromStatus].splice(
-            taskIndex,
-            1
-          );
-          movedTask.status = toStatus;
-          updatedActivities[toStatus].push(movedTask);
+          if (taskIndex !== -1) {
+            const [movedTask] = updatedActivities[fromStatus].splice(
+              taskIndex,
+              1
+            );
+            movedTask.status = toStatus;
+            updatedActivities[toStatus].push(movedTask);
+          }
           return updatedActivities;
         });
+
+        toast.success("Tarea actualizada exitosamente");
       } catch (error) {
         console.error("Error al actualizar la tarea:", error);
+        toast.error("Error al actualizar la tarea");
       }
     }
   };
@@ -371,22 +384,20 @@ const GroupsPage = () => {
             <>
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">{selectedGroup.name}</h2>
-                {userRole === "admin" && (
-                  <div className="space-x-2">
-                    <button
-                      onClick={() => setIsAddParticipantModalOpen(true)}
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none"
-                    >
-                      Añadir Participante
-                    </button>
-                    <button
-                      onClick={() => setIsTaskCreationModalOpen(true)}
-                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none"
-                    >
-                      Crear Tarea
-                    </button>
-                  </div>
-                )}
+                <div className="space-x-2">
+                  <button
+                    onClick={() => setIsAddParticipantModalOpen(true)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none"
+                  >
+                    Añadir Participante
+                  </button>
+                  <button
+                    onClick={() => setIsTaskCreationModalOpen(true)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none"
+                  >
+                    Crear Tarea
+                  </button>
+                </div>
               </div>
               <div className="flex space-x-4">
                 {Object.entries(activities).map(([status, tasks]) => (
@@ -453,6 +464,8 @@ const GroupsPage = () => {
         groupParticipants={selectedGroup?.participantes || []}
         groupId={selectedGroup?.id}
       />
+
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </MainLayout>
   );
 };

@@ -11,7 +11,7 @@ const TasksPage = () => {
   });
 
   useEffect(() => {
-    // Fetch tasks from API
+    //Traer las tareas del usuario
     const fetchTasks = async () => {
       try {
         const response = await fetch("http://localhost:5000/tasks", {
@@ -21,7 +21,7 @@ const TasksPage = () => {
         });
         const data = await response.json();
         if (response.ok) {
-          // Organize tasks into columns
+          //Organizar las tareas en columnas
           const organizedTasks = {
             completed: data.tasks.filter((task) => task.status === "Done"),
             inProgress: data.tasks.filter(
@@ -70,7 +70,7 @@ const TasksPage = () => {
 
         setTasks(updatedTasks);
 
-        // Update task status in the backend
+        //Actualizar tareas en el backend
         try {
           await fetch(`http://localhost:5000/tasks/${taskId}`, {
             method: "PATCH",
