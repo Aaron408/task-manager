@@ -68,6 +68,13 @@ const DashboardPage = () => {
         alert("Tarea añadida exitosamente");
         setTasks([...tasks, data.task]);
         setIsModalOpen(false);
+        setNewTask({
+          name: "",
+          description: "",
+          dueDate: "",
+          status: "In Progress",
+          category: "",
+        }); // Reset the form
       } else {
         alert(data.message);
       }
@@ -79,7 +86,7 @@ const DashboardPage = () => {
 
   const getTaskStats = () => {
     const total = tasks.length;
-    const completed = tasks.filter((task) => task.status === "Done").length;
+    const completed = tasks.filter((task) => task.status === "Completed").length;
     const inProgress = tasks.filter(
       (task) => task.status === "In Progress"
     ).length;
@@ -174,7 +181,7 @@ const DashboardPage = () => {
               </h2>
               <div className="space-y-4">
                 {tasks
-                  .filter((task) => task.status !== "Done")
+                  .filter((task) => task.status !== "Completed")
                   .map((task) => (
                     <div
                       key={task.id}
@@ -253,17 +260,14 @@ const DashboardPage = () => {
               <h3 className="text-2xl font-semibold mb-4">
                 Agregar Nueva Tarea
               </h3>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setIsModalOpen(false);
-                }}
-              >
+              <form onSubmit={handleSubmit}>
                 <input
                   type="text"
                   name="name"
                   placeholder="Nombre de la tarea"
                   className="w-full p-2 mb-4 border rounded"
+                  value={newTask.name}
+                  onChange={handleInputChange}
                   required
                 />
                 <textarea
@@ -271,15 +275,21 @@ const DashboardPage = () => {
                   placeholder="Descripción"
                   className="w-full p-2 mb-4 border rounded"
                   rows="3"
+                  value={newTask.description}
+                  onChange={handleInputChange}
                 ></textarea>
                 <input
                   type="datetime-local"
                   name="dueDate"
                   className="w-full p-2 mb-4 border rounded"
+                  value={newTask.dueDate}
+                  onChange={handleInputChange}
                 />
                 <select
                   name="category"
                   className="w-full p-2 mb-4 border rounded"
+                  value={newTask.category}
+                  onChange={handleInputChange}
                 >
                   <option value="">Seleccionar categoría</option>
                   <option value="Trabajo">Trabajo</option>

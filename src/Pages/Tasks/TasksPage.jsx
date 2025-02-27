@@ -1,43 +1,46 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import MainLayout from "../../Layouts/MainLayouts";
 
 const TasksPage = () => {
   const [tasks, setTasks] = useState({
-    completed: [],
-    inProgress: [],
-    paused: [],
+    Completed: [],
+    "In Progress": [],
+    Paused: [],
   });
 
   useEffect(() => {
-    //Traer las tareas del usuario
-    const fetchTasks = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/tasks", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        const data = await response.json();
-        if (response.ok) {
-          //Organizar las tareas en columnas
-          const organizedTasks = {
-            completed: data.tasks.filter((task) => task.status === "Done"),
-            inProgress: data.tasks.filter(
-              (task) => task.status === "In Progress"
-            ),
-            paused: data.tasks.filter((task) => task.status === "Paused"),
-          };
-          setTasks(organizedTasks);
-        }
-      } catch (error) {
-        console.error("Error fetching tasks:", error);
-      }
-    };
-
     fetchTasks();
   }, []);
+
+  const fetchTasks = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/tasks", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        const organizedTasks = {
+          Completed: data.tasks.filter((task) => task.status === "Completed"),
+          "In Progress": data.tasks.filter(
+            (task) => task.status === "In Progress"
+          ),
+          Paused: data.tasks.filter((task) => task.status === "Paused"),
+        };
+        setTasks(organizedTasks);
+      } else {
+        toast.error("Error al cargar las tareas");
+      }
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      toast.error("Error al cargar las tareas");
+    }
+  };
 
   const onDragStart = (e, taskId, sourceColumn) => {
     e.dataTransfer.setData("taskId", taskId);
@@ -54,56 +57,51 @@ const TasksPage = () => {
     const sourceColumn = e.dataTransfer.getData("sourceColumn");
 
     if (sourceColumn !== targetColumn) {
-      const updatedTasks = { ...tasks };
-      const taskToMove = updatedTasks[sourceColumn].find(
-        (task) => task.id.toString() === taskId
-      );
-
-      if (taskToMove) {
-        updatedTasks[sourceColumn] = updatedTasks[sourceColumn].filter(
-          (task) => task.id.toString() !== taskId
-        );
-        updatedTasks[targetColumn].push({
-          ...taskToMove,
-          status: getStatusFromColumn(targetColumn),
+      try {
+        const response = await fetch(`http://localhost:5000/tasks/${taskId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ status: targetColumn }),
         });
 
-        setTasks(updatedTasks);
+        if (response.ok) {
+          setTasks((prevTasks) => {
+            const updatedTasks = { ...prevTasks };
+            const taskToMove = updatedTasks[sourceColumn].find(
+              (task) => task.id.toString() === taskId
+            );
 
-        //Actualizar tareas en el backend
-        try {
-          await fetch(`http://localhost:5000/tasks/${taskId}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: JSON.stringify({ status: getStatusFromColumn(targetColumn) }),
+            if (taskToMove) {
+              updatedTasks[sourceColumn] = updatedTasks[sourceColumn].filter(
+                (task) => task.id.toString() !== taskId
+              );
+              updatedTasks[targetColumn] = [
+                ...updatedTasks[targetColumn],
+                { ...taskToMove, status: targetColumn },
+              ];
+            }
+
+            return updatedTasks;
           });
-        } catch (error) {
-          console.error("Error updating task status:", error);
-        }
-      }
-    }
-  };
 
-  const getStatusFromColumn = (column) => {
-    switch (column) {
-      case "completed":
-        return "Done";
-      case "inProgress":
-        return "In Progress";
-      case "paused":
-        return "Paused";
-      default:
-        return "";
+          toast.success("Tarea actualizada con éxito");
+        } else {
+          toast.error("Error al actualizar la tarea");
+        }
+      } catch (error) {
+        console.error("Error updating task status:", error);
+        toast.error("Error al actualizar la tarea");
+      }
     }
   };
 
   return (
     <MainLayout>
       <div className="p-6">
-        <h1 className="text-3xl font-bold mb-6">Task Management</h1>
+        <h1 className="text-3xl font-bold mb-6">Gestión de Tareas</h1>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {Object.entries(tasks).map(([columnId, columnTasks]) => (
             <div
@@ -120,7 +118,7 @@ const TasksPage = () => {
                   <div
                     key={task.id}
                     draggable
-                    onDragStart={(e) => onDragStart(e, task.id, columnId)}
+                    onDragStart={(e) => onDragStart(e, task.id, task.status)}
                     className="bg-white p-4 rounded shadow cursor-move"
                   >
                     <h3 className="font-medium">{task.name}</h3>
@@ -134,6 +132,7 @@ const TasksPage = () => {
           ))}
         </div>
       </div>
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </MainLayout>
   );
 };

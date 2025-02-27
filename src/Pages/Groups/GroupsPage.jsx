@@ -281,14 +281,17 @@ const GroupsPage = () => {
           return;
         }
 
-        const response = await fetch(`http://localhost:5000/dropTasks/${taskId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status: toStatus }),
-        });
+        const response = await fetch(
+          `http://localhost:5000/dropTasks/${taskId}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ status: toStatus }),
+          }
+        );
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -382,23 +385,25 @@ const GroupsPage = () => {
         <div className="flex-1 p-6 overflow-x-auto">
           {selectedGroup ? (
             <>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">{selectedGroup.name}</h2>
-                <div className="space-x-2">
-                  <button
-                    onClick={() => setIsAddParticipantModalOpen(true)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none"
-                  >
-                    Añadir Participante
-                  </button>
-                  <button
-                    onClick={() => setIsTaskCreationModalOpen(true)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none"
-                  >
-                    Crear Tarea
-                  </button>
+              {userRole === "admin" && (
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold">{selectedGroup.name}</h2>
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => setIsAddParticipantModalOpen(true)}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none"
+                    >
+                      Añadir Participante
+                    </button>
+                    <button
+                      onClick={() => setIsTaskCreationModalOpen(true)}
+                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none"
+                    >
+                      Crear Tarea
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="flex space-x-4">
                 {Object.entries(activities).map(([status, tasks]) => (
                   <div
