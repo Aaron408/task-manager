@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MainLayout from "../../Layouts/MainLayouts";
 import { TasksApi } from "../../api";
@@ -188,6 +188,8 @@ const TasksPage = () => {
       />
 
       <AddTaskButton onClick={() => setIsModalOpen(true)} />
+
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </MainLayout>
   );
 };

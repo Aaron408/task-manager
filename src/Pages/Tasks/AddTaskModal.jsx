@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { TasksApi } from "../../api";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import { IoMdAdd } from "react-icons/io";
 
 const AddTaskModal = ({ isOpen, onClose, onTaskAdded }) => {
@@ -116,6 +116,7 @@ const AddTaskModal = ({ isOpen, onClose, onTaskAdded }) => {
           </div>
         </form>
       </div>
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   );
 };

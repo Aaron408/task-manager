@@ -6,7 +6,8 @@ const getToken = () => {
 };
 
 export const AuthApi = axios.create({
-  baseURL: "https://task-manager-auth-ehtkeehh0-aarons-projects-ab43df53.vercel.app/",
+  baseURL:
+    "https://task-manager-auth-ehtkeehh0-aarons-projects-ab43df53.vercel.app/",
   headers: {
     Authorization: `Bearer ${getToken()}`,
     "Access-Control-Allow-Origin": "*",
@@ -15,7 +16,8 @@ export const AuthApi = axios.create({
 });
 
 export const GroupsApi = axios.create({
-  baseURL: "http://localhost:5002",
+  baseURL:
+    "https://task-manager-groups-303y8n9rt-aarons-projects-ab43df53.vercel.app/",
   headers: {
     Authorization: `Bearer ${getToken()}`,
     "Access-Control-Allow-Origin": "*",
@@ -24,7 +26,8 @@ export const GroupsApi = axios.create({
 });
 
 export const TasksApi = axios.create({
-  baseURL: "http://localhost:5003",
+  baseURL:
+    "https://task-manager-tasks-9f4m282x4-aarons-projects-ab43df53.vercel.app/",
   headers: {
     Authorization: `Bearer ${getToken()}`,
     "Access-Control-Allow-Origin": "*",
@@ -33,7 +36,7 @@ export const TasksApi = axios.create({
 });
 
 export const UsersApi = axios.create({
-  baseURL: "http://localhost:5004",
+  baseURL: "https://tasks-manager-users-93unxbv38-aarons-projects-ab43df53.vercel.app/",
   headers: {
     Authorization: `Bearer ${getToken()}`,
     "Access-Control-Allow-Origin": "*",
