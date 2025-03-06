@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { AuthApi } from "../../api";
+
 const RegisterPage = () => {
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
@@ -39,7 +41,7 @@ const RegisterPage = () => {
 
     if (isFormValid) {
       try {
-        const response = await fetch("http://localhost:5000/register", {
+        const response = await AuthApi.post("/register", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
