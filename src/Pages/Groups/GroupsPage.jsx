@@ -1,14 +1,14 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { HiOutlineUserGroup } from "react-icons/hi";
-import { FiSearch, FiPlusCircle } from "react-icons/fi";
+import { FiSearch, FiPlusCircle, FiUsers } from "react-icons/fi";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MainLayout from "../../Layouts/MainLayouts";
 import CreateGroupModal from "./CreateGroupModal";
 import AddParticipantModal from "./AddParticipantModal";
 import TaskCreationModal from "./TaskCreationModal";
+import ParticipantsListModal from "./ParticipantsListModal";
+import { TasksApi, GroupsApi, UsersApi } from "../../api";
 
 const GroupsPage = () => {
   const [groups, setGroups] = useState([]);
@@ -24,6 +24,8 @@ const GroupsPage = () => {
   const [isAddParticipantModalOpen, setIsAddParticipantModalOpen] =
     useState(false);
   const [isTaskCreationModalOpen, setIsTaskCreationModalOpen] = useState(false);
+  const [isParticipantsListModalOpen, setIsParticipantsListModalOpen] =
+    useState(false);
   const [usersList, setUsersList] = useState([]);
 
   useEffect(() => {
@@ -34,34 +36,24 @@ const GroupsPage = () => {
   useEffect(() => {
     if (selectedGroup) {
       fetchGroupTasks(selectedGroup.id);
+      const intervalId = setInterval(() => {
+        fetchGroupTasks(selectedGroup.id, true);
+      }, 3000);
+      return () => clearInterval(intervalId);
     }
   }, [selectedGroup]);
 
   const fetchGroups = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("Token no encontrado en localStorage");
-        return;
+      const response = await GroupsApi.get("/groups");
+
+      if (response.data) {
+        setGroups(response.data.groups);
+        setUserRole(response.data.role);
+      } else {
+        console.error("Respuesta inesperada al obtener grupos:", response);
+        toast.error("Error al cargar los grupos");
       }
-
-      const response = await fetch(`http://localhost:5000/groups`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error al obtener grupos:", errorText);
-        return;
-      }
-
-      const data = await response.json();
-      setGroups(data.groups);
-      setUserRole(data.role);
     } catch (error) {
       console.error("Error de conexión:", error);
       toast.error("Error al cargar los grupos");
@@ -70,28 +62,17 @@ const GroupsPage = () => {
 
   const fetchUsersList = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("Token no encontrado en localStorage");
-        return;
+      const response = await UsersApi.get("/usersList");
+
+      if (response.data) {
+        setUsersList(response.data.users);
+      } else {
+        console.error(
+          "Respuesta inesperada al obtener la lista de usuarios:",
+          response
+        );
+        toast.error("Error al cargar la lista de usuarios");
       }
-
-      const response = await fetch(`http://localhost:5000/usersList`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error al obtener lista de usuarios:", errorText);
-        return;
-      }
-
-      const data = await response.json();
-      setUsersList(data.users);
     } catch (error) {
       console.error("Error al obtener lista de usuarios:", error);
       toast.error("Error al cargar la lista de usuarios");
@@ -100,43 +81,29 @@ const GroupsPage = () => {
 
   const fetchGroupTasks = async (groupId) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("Token no encontrado en localStorage");
-        return;
+      const response = await TasksApi.get(`/groups/${groupId}/tasks`);
+
+      if (response.data) {
+        const groupedTasks = {
+          Completed: [],
+          "In Progress": [],
+          Paused: [],
+        };
+
+        response.data.tasks.forEach((task) => {
+          groupedTasks[task.status].push(task);
+        });
+
+        setActivities(groupedTasks);
+        setUserRole(response.data.userRole);
+        setUserId(response.data.userId);
+      } else {
+        console.error(
+          "Respuesta inesperada al obtener las tareas del grupo:",
+          response
+        );
+        toast.error("Error al cargar las tareas del grupo");
       }
-
-      const response = await fetch(
-        `http://localhost:5000/groups/${groupId}/tasks`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error al obtener tareas del grupo:", errorText);
-        return;
-      }
-
-      const data = await response.json();
-      const groupedTasks = {
-        Completed: [],
-        "In Progress": [],
-        Paused: [],
-      };
-
-      data.tasks.forEach((task) => {
-        groupedTasks[task.status].push(task);
-      });
-
-      setActivities(groupedTasks);
-      setUserRole(data.userRole);
-      setUserId(data.userId);
     } catch (error) {
       console.error("Error al obtener tareas del grupo:", error);
       toast.error("Error al cargar las tareas del grupo");
@@ -147,116 +114,26 @@ const GroupsPage = () => {
     setSelectedGroup(group);
   };
 
-  const handleCreateGroup = async (newGroupData) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("Token no encontrado en localStorage");
-        return;
-      }
-
-      const response = await fetch(`http://localhost:5000/createGroup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newGroupData),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error al crear el grupo:", errorText);
-        toast.error("Error al crear el grupo");
-        return;
-      }
-
-      const data = await response.json();
-      setGroups([...groups, data.group]);
-      setIsCreateGroupModalOpen(false);
-      toast.success("Grupo creado exitosamente");
-    } catch (error) {
-      console.error("Error al crear el grupo:", error);
-      toast.error("Error al crear el grupo");
-    }
+  const handleGroupCreated = (newGroup) => {
+    setGroups([...groups, newGroup]);
   };
 
-  const handleAddParticipant = async (newParticipantId) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("Token no encontrado en localStorage");
-        return;
-      }
-
-      const response = await fetch(
-        `http://localhost:5000/groups/${selectedGroup.id}/addParticipant`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ participantId: newParticipantId }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error al añadir participante:", errorText);
-        toast.error("Error al añadir participante");
-        return;
-      }
-
-      setSelectedGroup((prevGroup) => ({
-        ...prevGroup,
-        participantes: [...prevGroup.participantes, newParticipantId],
-      }));
-
-      setIsAddParticipantModalOpen(false);
-      toast.success("Participante añadido exitosamente");
-    } catch (error) {
-      console.error("Error al añadir participante:", error);
-      toast.error("Error al añadir participante");
-    }
+  const handleParticipantAdded = (participantId) => {
+    setSelectedGroup((prevGroup) => ({
+      ...prevGroup,
+      participantes: [...prevGroup.participantes, participantId],
+    }));
   };
 
-  const handleCreateTask = async (newTaskData) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("Token no encontrado en localStorage");
-        return;
-      }
+  const handleTaskCreated = (newTask) => {
+    setActivities((prevActivities) => ({
+      ...prevActivities,
+      [newTask.status]: [...prevActivities[newTask.status], newTask],
+    }));
+  };
 
-      const response = await fetch(`http://localhost:5000/createGroupTasks`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newTaskData),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error al crear la tarea:", errorText);
-        toast.error("Error al crear la tarea");
-        return;
-      }
-
-      const data = await response.json();
-      setActivities((prevActivities) => ({
-        ...prevActivities,
-        [data.task.status]: [...prevActivities[data.task.status], data.task],
-      }));
-
-      setIsTaskCreationModalOpen(false);
-      toast.success("Tarea creada exitosamente");
-    } catch (error) {
-      console.error("Error al crear la tarea:", error);
-      toast.error("Error al crear la tarea");
-    }
+  const handleUsersUpdated = (updatedUsersList) => {
+    setUsersList(updatedUsersList);
   };
 
   const handleDragStart = (e, taskId, status) => {
@@ -275,30 +152,7 @@ const GroupsPage = () => {
 
     if (fromStatus !== toStatus) {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          console.error("Token no encontrado en localStorage");
-          return;
-        }
-
-        const response = await fetch(
-          `http://localhost:5000/dropTasks/${taskId}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ status: toStatus }),
-          }
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Error al actualizar la tarea:", errorText);
-          toast.error("No tienes permiso para mover esta tarea");
-          return;
-        }
+        await TasksApi.patch(`/dropTasks/${taskId}`, { status: toStatus });
 
         setActivities((prevActivities) => {
           const updatedActivities = { ...prevActivities };
@@ -319,7 +173,7 @@ const GroupsPage = () => {
         toast.success("Tarea actualizada exitosamente");
       } catch (error) {
         console.error("Error al actualizar la tarea:", error);
-        toast.error("Error al actualizar la tarea");
+        toast.error("No tienes permiso para mover esta tarea");
       }
     }
   };
@@ -327,7 +181,6 @@ const GroupsPage = () => {
   return (
     <MainLayout>
       <div className="flex flex-col h-full bg-gray-50 md:flex-row">
-        {/* Lista de Grupos */}
         <div className="w-full md:w-1/4 bg-white border-r border-gray-200 overflow-y-auto">
           <div className="p-4">
             <div className="flex items-center justify-between mb-4">
@@ -381,7 +234,6 @@ const GroupsPage = () => {
           </ul>
         </div>
 
-        {/* Área de Actividades */}
         <div className="flex-1 p-6 overflow-x-auto">
           {selectedGroup ? (
             <>
@@ -389,6 +241,12 @@ const GroupsPage = () => {
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold">{selectedGroup.name}</h2>
                   <div className="space-x-2">
+                    <button
+                      onClick={() => setIsParticipantsListModalOpen(true)}
+                      className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none"
+                    >
+                      <FiUsers className="inline mr-1" /> Ver Participantes
+                    </button>
                     <button
                       onClick={() => setIsAddParticipantModalOpen(true)}
                       className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none"
@@ -430,7 +288,7 @@ const GroupsPage = () => {
                             Asignado a:{" "}
                             {usersList.find(
                               (user) => user.id === task.assignedTo
-                            )?.email || "Desconocido"}
+                            )?.email || "Pos tu mero"}
                           </p>
                         </div>
                       ))}
@@ -450,25 +308,41 @@ const GroupsPage = () => {
       <CreateGroupModal
         isOpen={isCreateGroupModalOpen}
         onClose={() => setIsCreateGroupModalOpen(false)}
-        onCreateGroup={handleCreateGroup}
+        onSuccess={handleGroupCreated}
         usersList={usersList}
       />
 
-      <AddParticipantModal
-        isOpen={isAddParticipantModalOpen}
-        onClose={() => setIsAddParticipantModalOpen(false)}
-        onAddParticipant={handleAddParticipant}
-        usersList={usersList}
-        currentParticipants={selectedGroup?.participantes || []}
-      />
+      {selectedGroup && (
+        <AddParticipantModal
+          isOpen={isAddParticipantModalOpen}
+          onClose={() => setIsAddParticipantModalOpen(false)}
+          onSuccess={handleParticipantAdded}
+          usersList={usersList}
+          currentParticipants={selectedGroup.participantes || []}
+          groupId={selectedGroup.id}
+        />
+      )}
 
-      <TaskCreationModal
-        isOpen={isTaskCreationModalOpen}
-        onClose={() => setIsTaskCreationModalOpen(false)}
-        onCreateTask={handleCreateTask}
-        groupParticipants={selectedGroup?.participantes || []}
-        groupId={selectedGroup?.id}
-      />
+      {selectedGroup && (
+        <TaskCreationModal
+          isOpen={isTaskCreationModalOpen}
+          onClose={() => setIsTaskCreationModalOpen(false)}
+          onSuccess={handleTaskCreated}
+          groupParticipants={selectedGroup.participantes || []}
+          groupId={selectedGroup.id}
+          usersList={usersList}
+        />
+      )}
+
+      {selectedGroup && (
+        <ParticipantsListModal
+          isOpen={isParticipantsListModalOpen}
+          onClose={() => setIsParticipantsListModalOpen(false)}
+          groupParticipants={selectedGroup.participantes || []}
+          usersList={usersList}
+          onUsersUpdated={handleUsersUpdated}
+        />
+      )}
 
       <ToastContainer position="bottom-right" autoClose={3000} />
     </MainLayout>

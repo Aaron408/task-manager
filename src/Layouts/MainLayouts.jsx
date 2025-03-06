@@ -1,14 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { IoHome, IoSettings, IoMenu, IoLogOut } from "react-icons/io5";
 import { HiUserGroup } from "react-icons/hi";
 import { FaTasks } from "react-icons/fa";
+import { AuthContext } from "../Components/AuthContext";
 
 const MainLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
+
+  const { logout } = useContext(AuthContext);
 
   useEffect(() => {
     const handleResize = () => {
@@ -19,9 +22,8 @@ const MainLayout = ({ children }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const logout = async () => {
-    localStorage.removeItem("token");
-    navigate("/login");
+  const onLogout = () => {
+    logout();
   };
 
   const isActivePath = (path) => {
@@ -81,7 +83,7 @@ const MainLayout = ({ children }) => {
           {/* Logout button */}
           <div className="p-4 border-t border-gray-100">
             <button
-              onClick={logout}
+              onClick={onLogout}
               className="w-full flex items-center px-4 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-100 transition-colors duration-200"
             >
               <IoLogOut className="w-5 h-5" />

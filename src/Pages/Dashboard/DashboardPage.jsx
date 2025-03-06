@@ -8,85 +8,52 @@ import {
   FaFolderOpen,
   FaPauseCircle,
 } from "react-icons/fa";
-import { IoIosAlert, IoMdAdd } from "react-icons/io";
+import { IoIosAlert } from "react-icons/io";
+
+import { TasksApi } from "../../api";
+import AddTaskModal, { AddTaskButton } from "../Tasks/AddTaskModal";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const DashboardPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tasks, setTasks] = useState([]);
-  const [newTask, setNewTask] = useState({
-    name: "",
-    description: "",
-    dueDate: "",
-    status: "In Progress",
-    category: "",
-  });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/tasks", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          setTasks(data.tasks);
-        }
-      } catch (error) {
-        console.error("Error al obtener las tareas:", error);
-        alert("Error en el servidor");
-      }
-    };
-
     fetchTasks();
   }, []);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewTask({ ...newTask, [name]: value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const fetchTasks = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/add-tasks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(newTask),
-      });
+      const response = await TasksApi.get("/tasks");
 
-      const data = await response.json();
-
-      if (response.ok) {
-        alert("Tarea añadida exitosamente");
-        setTasks([...tasks, data.task]);
-        setIsModalOpen(false);
-        setNewTask({
-          name: "",
-          description: "",
-          dueDate: "",
-          status: "In Progress",
-          category: "",
-        }); // Reset the form
-      } else {
-        alert(data.message);
+      if (response.status === 200) {
+        setTasks(response.data.tasks || []);
       }
     } catch (error) {
-      console.error("Error al añadir la tarea:", error);
-      alert("Error en el servidor");
+      console.error("Error al obtener las tareas:", error);
+      if (error.response && error.response.status === 404) {
+        // No tasks found is not an error, just set empty array
+        setTasks([]);
+      } else {
+        toast.error("Error al cargar las tareas");
+      }
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleTaskAdded = (newTask) => {
+    setTasks([...tasks, newTask]);
   };
 
   const getTaskStats = () => {
     const total = tasks.length;
-    const completed = tasks.filter((task) => task.status === "Completed").length;
+    const completed = tasks.filter(
+      (task) => task.status === "Completed"
+    ).length;
     const inProgress = tasks.filter(
       (task) => task.status === "In Progress"
     ).length;
@@ -96,8 +63,12 @@ const DashboardPage = () => {
   };
 
   const getCategoryPercentages = () => {
+    if (tasks.length === 0) return [];
+
     const categories = {};
     tasks.forEach((task) => {
+      if (!task.category) return;
+
       if (categories[task.category]) {
         categories[task.category]++;
       } else {
@@ -109,10 +80,13 @@ const DashboardPage = () => {
     return Object.entries(categories).map(([category, count]) => ({
       category,
       percentage: ((count / total) * 100).toFixed(1),
+      count,
     }));
   };
 
   const getTimeRemaining = (dueDate) => {
+    if (!dueDate) return "Sin fecha";
+
     const now = new Date();
     const due = new Date(dueDate);
     const timeDiff = due - now;
@@ -127,6 +101,7 @@ const DashboardPage = () => {
   };
 
   const stats = getTaskStats();
+  const categoryPercentages = getCategoryPercentages();
 
   return (
     <MainLayout>
@@ -154,7 +129,11 @@ const DashboardPage = () => {
             icon={<FaCheckCircle className="h-6 w-6" />}
             title="Completadas"
             value={stats.completed}
-            percentage={((stats.completed / stats.total) * 100).toFixed(0)}
+            percentage={
+              stats.total > 0
+                ? ((stats.completed / stats.total) * 100).toFixed(0)
+                : "0"
+            }
             iconColor="text-green-600"
           />
           <MetricCard
@@ -179,142 +158,119 @@ const DashboardPage = () => {
                 <IoIosAlert className="mr-2 text-red-500" />
                 Tareas Recientes
               </h2>
-              <div className="space-y-4">
-                {tasks
-                  .filter((task) => task.status !== "Completed")
-                  .map((task) => (
-                    <div
-                      key={task.id}
-                      className="bg-white p-4 rounded-lg shadow-sm"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium">{task.name}</h3>
-                          <p className="text-sm text-gray-600 flex items-center mt-1">
-                            <FaFolder className="h-4 w-4 mr-1" />
-                            {task.category}
-                          </p>
-                        </div>
-                        <div className="flex items-center">
-                          <span
-                            className={`text-sm px-2 py-1 rounded ${
-                              getTimeRemaining(task.dueDate) === "Caducado"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}
-                          >
-                            {getTimeRemaining(task.dueDate)}
-                          </span>
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Cargando tareas...</p>
+                </div>
+              ) : tasks.filter((task) => task.status !== "Completed").length >
+                0 ? (
+                <div className="space-y-4">
+                  {tasks
+                    .filter((task) => task.status !== "Completed")
+                    .map((task) => (
+                      <div
+                        key={task.id}
+                        className="bg-white p-4 rounded-lg shadow-sm"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium">{task.name}</h3>
+                            <p className="text-sm text-gray-600 flex items-center mt-1">
+                              <FaFolder className="h-4 w-4 mr-1" />
+                              {task.category || "Sin categoría"}
+                            </p>
+                          </div>
+                          <div className="flex items-center">
+                            <span
+                              className={`text-sm px-2 py-1 rounded ${
+                                getTimeRemaining(task.dueDate) === "Caducado"
+                                  ? "bg-red-100 text-red-700"
+                                  : getTimeRemaining(task.dueDate) ===
+                                    "Sin fecha"
+                                  ? "bg-gray-100 text-gray-700"
+                                  : "bg-yellow-100 text-yellow-700"
+                              }`}
+                            >
+                              {getTimeRemaining(task.dueDate)}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-              </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No hay tareas pendientes</p>
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="mt-4 px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
+                  >
+                    Agregar una tarea
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Tareas por Categoría */}
           <div>
             <div className="bg-gray-50 rounded-lg p-6">
-              <FaFolderOpen className="mr-2" />
               <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <FaFolderOpen className="mr-2" />
                 Tareas por Categoría
               </h2>
-              <div className="space-y-4">
-                {getCategoryPercentages().map(({ category, percentage }) => (
-                  <div
-                    key={category}
-                    className="bg-white p-4 rounded-lg shadow-sm"
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium capitalize">{category}</span>
-                      <span className="text-sm text-gray-600">
-                        {percentage}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+                </div>
+              ) : categoryPercentages.length > 0 ? (
+                <div className="space-y-4">
+                  {categoryPercentages.map(
+                    ({ category, percentage, count }) => (
                       <div
-                        className="bg-black rounded-full h-2 transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                        key={category}
+                        className="bg-white p-4 rounded-lg shadow-sm"
+                      >
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium capitalize">
+                            {category}
+                          </span>
+                          <span className="text-sm text-gray-600">
+                            {percentage}% ({count})
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-black rounded-full h-2 transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">
+                    No hay categorías para mostrar
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Botón para agregar tarea */}
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="fixed bottom-8 right-8 bg-black text-white rounded-full p-4 shadow-lg hover:bg-gray-800 transition-colors duration-300"
-        >
-          <IoMdAdd className="h-8 w-8" />
-        </button>
+        <AddTaskButton onClick={() => setIsModalOpen(true)} />
 
         {/* Modal para agregar tarea */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white rounded-lg p-8 max-w-md w-full">
-              <h3 className="text-2xl font-semibold mb-4">
-                Agregar Nueva Tarea
-              </h3>
-              <form onSubmit={handleSubmit}>
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Nombre de la tarea"
-                  className="w-full p-2 mb-4 border rounded"
-                  value={newTask.name}
-                  onChange={handleInputChange}
-                  required
-                />
-                <textarea
-                  name="description"
-                  placeholder="Descripción"
-                  className="w-full p-2 mb-4 border rounded"
-                  rows="3"
-                  value={newTask.description}
-                  onChange={handleInputChange}
-                ></textarea>
-                <input
-                  type="datetime-local"
-                  name="dueDate"
-                  className="w-full p-2 mb-4 border rounded"
-                  value={newTask.dueDate}
-                  onChange={handleInputChange}
-                />
-                <select
-                  name="category"
-                  className="w-full p-2 mb-4 border rounded"
-                  value={newTask.category}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Seleccionar categoría</option>
-                  <option value="Trabajo">Trabajo</option>
-                  <option value="Personal">Personal</option>
-                  <option value="Otros">Otros</option>
-                </select>
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="mr-2 px-4 py-2 text-gray-600 hover:text-gray-800"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
-                  >
-                    Agregar Tarea
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <AddTaskModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onTaskAdded={handleTaskAdded}
+        />
+        <ToastContainer position="bottom-right" autoClose={3000} />
       </div>
     </MainLayout>
   );

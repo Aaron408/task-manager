@@ -1,18 +1,38 @@
 import { useState } from "react";
+import { GroupsApi } from "../../api";
+import { toast } from "react-toastify";
 
 const AddParticipantModal = ({
   isOpen,
   onClose,
-  onAddParticipant,
   usersList,
   currentParticipants,
+  groupId,
+  onSuccess,
 }) => {
   const [selectedParticipant, setSelectedParticipant] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onAddParticipant(selectedParticipant);
-    setSelectedParticipant("");
+    if (!selectedParticipant) return;
+
+    setIsSubmitting(true);
+    try {
+      await GroupsApi.post(`/groups/${groupId}/addParticipant`, {
+        participantId: selectedParticipant,
+      });
+
+      setSelectedParticipant("");
+      onSuccess(selectedParticipant);
+      onClose();
+      toast.success("Participante añadido exitosamente");
+    } catch (error) {
+      console.error("Error al añadir participante:", error);
+      toast.error("Error al añadir participante");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -31,6 +51,7 @@ const AddParticipantModal = ({
               onChange={(e) => setSelectedParticipant(e.target.value)}
               className="block w-full p-2 mt-2 rounded-md border-gray-300 shadow-sm"
               required
+              disabled={isSubmitting}
             >
               <option value="">Seleccionar usuario</option>
               {usersList
@@ -49,12 +70,14 @@ const AddParticipantModal = ({
               type="button"
               onClick={onClose}
               className="px-4 py-2 text-sm text-white font-bold bg-red-600 rounded-md hover:bg-red-700 focus:outline-none"
+              disabled={isSubmitting}
             >
               Cancelar
             </button>
             <button
               type="submit"
               className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 focus:outline-none"
+              disabled={isSubmitting}
             >
               Añadir Participante
             </button>

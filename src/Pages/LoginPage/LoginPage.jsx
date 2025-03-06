@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { AuthContext } from "../../Components/AuthContext";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [backgroundSpots, setBackgroundSpots] = useState([]);
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
 
-  //Generar manchas para el fondo de la página
   useEffect(() => {
     const spots = [...Array(20)].map(() => ({
       id: Math.random(),
@@ -20,11 +22,6 @@ const LoginPage = () => {
     setBackgroundSpots(spots);
   }, []);
 
-  const user = {
-    email: "aaron@gmail.com",
-    password: "password123",
-  };
-
   const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isFormValid = isValidEmail(email) && password.trim() !== "";
 
@@ -32,25 +29,12 @@ const LoginPage = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:5000/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem("token", data.token);
-        navigate("/dashboard");
-      } else {
-        alert(data.message);
-      }
+      await login(email, password);
     } catch (error) {
       console.error("Error en el login:", error);
-      alert("Error en el servidor");
+      toast.error(
+        "Error en el inicio de sesión. Por favor, intente nuevamente."
+      );
     }
   };
 
@@ -85,11 +69,16 @@ const LoginPage = () => {
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Correo electrónico
                 </label>
                 <div className="mt-1">
                   <input
+                    id="email"
+                    name="email"
                     type="email"
                     autoComplete="email"
                     required
@@ -106,11 +95,16 @@ const LoginPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Contraseña
                 </label>
                 <div className="mt-1">
                   <input
+                    id="password"
+                    name="password"
                     type="password"
                     autoComplete="current-password"
                     required
