@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -11,6 +13,7 @@ const RegisterPage = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [backgroundSpots, setBackgroundSpots] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   // Generar manchas para el fondo de la página
@@ -40,32 +43,34 @@ const RegisterPage = () => {
     e.preventDefault();
 
     if (isFormValid) {
+      setIsSubmitting(true);
       try {
+        // Usar correctamente la instancia de Axios
         const response = await AuthApi.post("/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username,
-            fullName,
-            birthDate,
-            email,
-            password,
-          }),
+          username,
+          fullName,
+          birthDate,
+          email,
+          password,
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
+        // Axios ya maneja la respuesta JSON automáticamente
+        if (response.status === 200 || response.status === 201) {
           alert("Registro exitoso");
           navigate("/login");
         } else {
-          alert(data.message);
+          alert(response.data.message || "Error en el registro");
         }
       } catch (error) {
         console.error("Error en el registro:", error);
-        alert("Error en el servidor");
+        // Mostrar mensaje de error del servidor si está disponible
+        if (error.response && error.response.data) {
+          alert(error.response.data.message || "Error en el registro");
+        } else {
+          alert("Error en el servidor");
+        }
+      } finally {
+        setIsSubmitting(false);
       }
     } else {
       alert("Por favor, completa todos los campos correctamente");
@@ -238,14 +243,14 @@ const RegisterPage = () => {
                   type="submit"
                   className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
                     ${
-                      isFormValid
+                      isFormValid && !isSubmitting
                         ? "bg-gray-800 hover:bg-gray-700"
                         : "bg-gray-400 cursor-not-allowed"
                     }
                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500`}
-                  disabled={!isFormValid}
+                  disabled={!isFormValid || isSubmitting}
                 >
-                  Registrarse
+                  {isSubmitting ? "Procesando..." : "Registrarse"}
                 </button>
               </div>
             </form>
