@@ -84,12 +84,7 @@ export const PrivateRoute = ({ allowedRoles, redirectTo = "/login" }) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    const roleRedirects = {
-      admin: "/dashboard",
-      mortal: "/tasks",
-    };
-
-    return <Navigate to={roleRedirects[user.role] || redirectTo} />;
+    return <Navigate to={"/dashboard" || redirectTo} />;
   }
 
   return <Outlet />;

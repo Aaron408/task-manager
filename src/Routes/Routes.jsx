@@ -1,5 +1,3 @@
-"use client"
-
 import { useContext } from "react"
 import { Routes, Route, Navigate } from "react-router-dom"
 
@@ -15,18 +13,12 @@ import { AuthContext, PrivateRoute } from "../Components/AuthContext"
 const Navigation = () => {
   const { user } = useContext(AuthContext)
 
-  // Redirección específica según el rol del usuario
-  const roleRedirects = {
-    admin: "/dashboard",
-    mortal: "/tasks",
-  }
-
   return (
     <Routes>
       <Route path="*" element={<h1>Tas perdido o k?</h1>} />
-      <Route path="/" element={user ? <Navigate to={roleRedirects[user.role] || "/tasks"} /> : <LandingPage />} />
-      <Route path="/login" element={user ? <Navigate to={roleRedirects[user.role] || "/tasks"} /> : <Login />} />
-      <Route path="/register" element={user ? <Navigate to={roleRedirects[user.role] || "/tasks"} /> : <RegisterPage />}/>
+      <Route path="/" element={user ? <Navigate to={"/dashboard"} /> : <LandingPage />} />
+      <Route path="/login" element={user ? <Navigate to={"/dashboard"} /> : <Login />} />
+      <Route path="/register" element={user ? <Navigate to={"/dashboard"} /> : <RegisterPage />}/>
 
       <Route element={<PrivateRoute allowedRoles={["admin", "mortal"]} />}>
         <Route path="/tasks" element={<TasksPage />} />
