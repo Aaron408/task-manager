@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -16,7 +14,7 @@ const RegisterPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  // Generar manchas para el fondo de la página
+  //Generar manchas para el fondo de la página
   useEffect(() => {
     const spots = [...Array(20)].map(() => ({
       id: Math.random(),
@@ -45,7 +43,6 @@ const RegisterPage = () => {
     if (isFormValid) {
       setIsSubmitting(true);
       try {
-        // Usar correctamente la instancia de Axios
         const response = await AuthApi.post("/register", {
           username,
           fullName,
@@ -54,7 +51,6 @@ const RegisterPage = () => {
           password,
         });
 
-        // Axios ya maneja la respuesta JSON automáticamente
         if (response.status === 200 || response.status === 201) {
           alert("Registro exitoso");
           navigate("/login");
@@ -63,7 +59,6 @@ const RegisterPage = () => {
         }
       } catch (error) {
         console.error("Error en el registro:", error);
-        // Mostrar mensaje de error del servidor si está disponible
         if (error.response && error.response.data) {
           alert(error.response.data.message || "Error en el registro");
         } else {

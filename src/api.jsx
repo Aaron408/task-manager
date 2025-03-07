@@ -1,13 +1,16 @@
 import axios from "axios";
 
 const getToken = () => {
-  const userData = localStorage.getItem("token");
-  return userData ? userData : null;
+  const userData = localStorage.getItem("user");
+  if (userData) {
+    const parsedUser = JSON.parse(userData);
+    return parsedUser.token || null;
+  }
+  return null;
 };
 
 export const AuthApi = axios.create({
-  baseURL:
-    "https://task-manager-auth-ehtkeehh0-aarons-projects-ab43df53.vercel.app/",
+  baseURL: "https://task-manager-auth-fbz12ht6l-aarons-projects-ab43df53.vercel.app/",
   headers: {
     Authorization: `Bearer ${getToken()}`,
     "Access-Control-Allow-Origin": "*",
@@ -36,7 +39,8 @@ export const TasksApi = axios.create({
 });
 
 export const UsersApi = axios.create({
-  baseURL: "https://tasks-manager-users-93unxbv38-aarons-projects-ab43df53.vercel.app/",
+  baseURL:
+    "https://tasks-manager-users-93unxbv38-aarons-projects-ab43df53.vercel.app/",
   headers: {
     Authorization: `Bearer ${getToken()}`,
     "Access-Control-Allow-Origin": "*",
@@ -66,7 +70,7 @@ const setupInterceptors = (apiInstance) => {
           error.response.status === 401 &&
           !error.config.url.includes("/login")
         ) {
-          localStorage.removeItem("token");
+          localStorage.removeItem("user");
           window.location.href = "/login";
         }
       }

@@ -1,6 +1,4 @@
-import { useContext } from "react";
-
-import { createContext, useState, useCallback } from "react";
+import { createContext, useState, useCallback, useContext } from "react";
 import { Navigate, Outlet, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -8,12 +6,14 @@ import { AuthApi } from "../api";
 
 export const AuthContext = createContext();
 
+export const useAuth = () => useContext(AuthContext);
+
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(() => {
-    const savedToken = localStorage.getItem("token");
-    return savedToken ? { token: savedToken } : null;
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
   });
 
   const login = useCallback(
@@ -24,11 +24,17 @@ export const AuthProvider = ({ children }) => {
           password,
         });
 
-        const { token } = response.data;
-        setUser({ token });
-        localStorage.setItem("token", token);
-        toast.success("¡Inicio de sesión exitoso!");
+        const { token, role, user: userData } = response.data;
 
+        const userInfo = {
+          ...userData,
+          token,
+          role,
+        };
+
+        setUser(userInfo);
+        localStorage.setItem("user", JSON.stringify(userInfo));
+        toast.success("¡Inicio de sesión exitoso!");
         navigate("/dashboard");
       } catch (error) {
         console.error("Error during login:", error);
@@ -50,7 +56,7 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     try {
       setUser(null);
-      localStorage.removeItem("token");
+      localStorage.removeItem("user");
       navigate("/login");
       toast.success("Has cerrado sesión correctamente.");
     } catch (error) {
@@ -63,6 +69,8 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     logout,
+    isAuthenticated: !!user,
+    role: user?.role,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -76,7 +84,12 @@ export const PrivateRoute = ({ allowedRoles, redirectTo = "/login" }) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to={redirectTo} />;
+    const roleRedirects = {
+      admin: "/dashboard",
+      mortal: "/tasks",
+    };
+
+    return <Navigate to={roleRedirects[user.role] || redirectTo} />;
   }
 
   return <Outlet />;
