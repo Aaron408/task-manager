@@ -10,7 +10,7 @@ const getToken = () => {
 };
 
 export const AuthApi = axios.create({
-  baseURL: "https://task-manager-auth-fbz12ht6l-aarons-projects-ab43df53.vercel.app/",
+  baseURL: "https://task-manager-auth-psttogp3k-aarons-projects-ab43df53.vercel.app/",
   headers: {
     Authorization: `Bearer ${getToken()}`,
     "Access-Control-Allow-Origin": "*",
